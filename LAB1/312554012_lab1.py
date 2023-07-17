@@ -179,7 +179,7 @@ if __name__ == "__main__":
     w3 = np.random.randn(1, hidden_size)
 
     # Momentum Optimizer
-    optimizer = True
+    optimizer = False
     m1 = np.random.randn(hidden_size, 2)
     m2 = np.random.randn(hidden_size, hidden_size)
     m3 = np.random.randn(1, hidden_size)
@@ -200,11 +200,12 @@ if __name__ == "__main__":
         # print intermediate result
         if (i + 1) % 100 == 0:
             print("epoch", i + 1, end=" ")
-            print("loss :", L)
+
+            print("loss :", L, end=" ")
             accuracy = (1 - np.sum(np.abs(y - np.round(pred_y))) / y.shape[1]) * 100
             print("accuracy :", accuracy, "%")
 
-    # show_learning_curve(epoch_list, loss_list)
+    show_learning_curve(epoch_list, loss_list)
 
     # testing
     print("\nTesting ...")
