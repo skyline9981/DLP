@@ -83,9 +83,6 @@ def show_learning_curve(epoch, loss):
     plt.show()
 
 
-# TODO: Implement simple neural networks with two hidden layers.
-
-
 def activation(func, arg):
     if func == "sigmoid":
         return sigmoid(arg)
@@ -152,12 +149,12 @@ def weight_update(optimizer, lr, n, dJ_dw1, dJ_dw2, dJ_dw3, w1, w2, w3, m1, m2, 
 
 def loss(pred_y, y):
     # MSE
-    loss = np.mean((pred_y - y) ** 2)
+    # loss = np.mean((pred_y - y) ** 2)
     # cross-entropy
-    # eps = 0.0001
-    # loss = -(1 / y.shape[1]) * (
-    #     y @ np.log(pred_y + eps).T + (1 - y) @ np.log(1 - pred_y + eps).T
-    # )
+    eps = 0.0001
+    loss = -(1 / y.shape[1]) * (
+        y @ np.log(pred_y + eps).T + (1 - y) @ np.log(1 - pred_y + eps).T
+    )
     return float(loss)
 
 
@@ -179,6 +176,7 @@ if __name__ == "__main__":
     w3 = np.random.randn(1, hidden_size)
 
     # Momentum Optimizer
+    # optimizer = True
     optimizer = False
     m1 = np.random.randn(hidden_size, 2)
     m2 = np.random.randn(hidden_size, hidden_size)
