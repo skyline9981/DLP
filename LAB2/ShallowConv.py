@@ -5,8 +5,9 @@ import numpy as np
 
 class ShallowConvNet(nn.Module):
     def __init__(self, activation_func, device) -> None:
+        super(ShallowConvNet, self).__init__()
         self.device = device
-        self.conv0 = nn.Conv2d(1, 25, kernel_size=(1, 13))
+        self.conv0 = nn.Conv2d(1, 40, kernel_size=(1, 13))
         self.conv1 = nn.Sequential(
             nn.Conv2d(40, 40, kernel_size=(2, 1), bias=False),
             nn.BatchNorm2d(
