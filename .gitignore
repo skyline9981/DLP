@@ -1,3 +1,6 @@
+```
 .vscode
 *.zip
 __pycache__/
+weight/
+```
