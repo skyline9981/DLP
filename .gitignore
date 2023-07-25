@@ -3,4 +3,5 @@
 *.zip
 __pycache__/
 weight/
+*.docx
 ```
