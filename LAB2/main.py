@@ -26,6 +26,7 @@ if args.others != None and "draw" in args.others:
 
 else:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
     print("Using device:", device)
 
     train_data, train_label, test_data, test_label = read_bci_data()
@@ -39,6 +40,7 @@ else:
 
     activation_func = [nn.ReLU(), nn.LeakyReLU(), nn.ELU()]
     func = ["ReLU", "LeakyReLU", "ELU"]
+    # func = ["LeakyReLU"]
 
     acc = []
 
@@ -178,7 +180,21 @@ else:
 
                 # calculate accuracy
                 accuracy = 100 * (correct_test / total_test)
+
                 accuracy_test.append(accuracy.item())  # type: ignore
+                accuracy = accuracy.item()  # type: ignore
+                if accuracy >= max(accuracy_test):
+                    if args.save != None and "weight" in args.save:
+                        path = "weight"
+                        # Check whether the specified path exists or not
+                        isExist = os.path.exists(path)
+                        if not isExist:
+                            os.makedirs(path)
+                        # save model
+                        torch.save(
+                            model.state_dict(),
+                            "weight/" + model_name + "_" + func_name + ".pt",
+                        )
 
                 if epoch % 100 == 99:
                     print("testing accuracy: ", accuracy)
@@ -216,16 +232,6 @@ else:
                 ) as f:
                     for i in accuracy_test:
                         f.write(str(i) + "\n")
-            if args.save != None and "weight" in args.save:
-                path = "weight"
-                # Check whether the specified path exists or not
-                isExist = os.path.exists(path)
-                if not isExist:
-                    os.makedirs(path)
-                # save model
-                torch.save(
-                    model.state_dict(), "weight/" + model_name + "_" + func_name + ".pt"
-                )
 
         print(
             "Accuracy of {} with {} activation function: {}".format(
