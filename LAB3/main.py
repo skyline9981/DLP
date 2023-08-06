@@ -68,6 +68,7 @@ def train():
         model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-3
     )
     accuracy = []
+    loss_record = []
     # Training
     for epoch in range(num_epoch):
         model.train()
@@ -80,7 +81,7 @@ def train():
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-
+            loss_record.append(loss.item())
             if (i + 1) % 10 == 0:
                 print(
                     "Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}".format(
@@ -157,6 +158,10 @@ def train():
         for i in accuracy:
             f.write(str(i) + "\n")
 
+    with open("record/" + "ResNet152_loss" + ".txt", "w") as f:
+        for i in loss_record:
+            f.write(str(i) + "\n")
+
     # print("train() not defined")
 
 
@@ -215,12 +220,13 @@ def save_result(csv_path, predict_result):
 
 
 if __name__ == "__main__":
-    # print("Good Luck :)")
+    print("Good Luck :)")
 
     # train()
 
     # evaluate()
     # test()
 
-    plotObject = PlotResult("ResNet50", 25)
-    plotObject.plot()
+    # plotObject = PlotResult("ResNet50", 25)
+    # plotObject.plot()
+    # plotObject.plot_loss()
