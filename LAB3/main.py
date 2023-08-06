@@ -22,8 +22,8 @@ def test():
     test_loader = torch.utils.data.DataLoader(
         dataset=test_dataset, batch_size=1, shuffle=False
     )
-    model = ResNet.ResNet152(num_classes=2).to(device)  # type: ignore
-    model.load_state_dict(torch.load("weight/Resnet152_best.pt"))
+    model = ResNet.ResNet18(num_classes=2).to(device)  # type: ignore
+    model.load_state_dict(torch.load("weight/Resnet18_best.pt"))
     model.eval()
     predict_result = []
     with torch.no_grad():
@@ -32,7 +32,7 @@ def test():
             outputs = model(images)
             predict_result.extend(torch.argmax(outputs, dim=1).tolist())
 
-    save_result("resnet_152_test.csv", predict_result)
+    save_result("resnet_18_test.csv", predict_result)
 
     # print("test() not defined")
 
@@ -43,8 +43,8 @@ def train():
     you can use resnet18 resnet50 or resnet152 to train and compare the result
     """
     # Hyperparameters
-    batch_size = 8
-    learning_rate = 1e-4
+    batch_size = 32
+    learning_rate = 1e-3
     num_epoch = 25
     num_classes: int = 2
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -61,11 +61,11 @@ def train():
     )
 
     # Model
-    model = ResNet.ResNet152(num_classes=num_classes).to(device)  # type: ignore
-    criterion = nn.CrossEntropyLoss()
+    model = ResNet.ResNet18(num_classes=num_classes).to(device)  # type: ignore
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([2.5, 1.0])).to(device)
     # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     optimizer = torch.optim.SGD(
-        model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-3
+        model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4
     )
     accuracy = []
     loss_record = []
@@ -116,25 +116,25 @@ def train():
         accuracy.append(acc)
 
         print("Accuracy of the model on the valid images: {} %".format(acc))
-        if acc >= max(accuracy):
+        if acc >= max(accuracy):  # type: ignore
             path = "weight"
             # Check whether the specified path exists or not
             isExist = os.path.exists(path)
             if not isExist:
                 os.makedirs(path)
             # save model
-            # torch.save(
-            #     model.state_dict(),
-            #     "weight/" + "Resnet18_best" + ".pt",
-            # )
+            torch.save(
+                model.state_dict(),
+                "weight/" + "Resnet18_best" + ".pt",
+            )
             # torch.save(
             #     model.state_dict(),
             #     "weight/" + "Resnet50_best" + ".pt",
             # )
-            torch.save(
-                model.state_dict(),
-                "weight/" + "Resnet152_best" + ".pt",
-            )
+            # torch.save(
+            #     model.state_dict(),
+            #     "weight/" + "Resnet152_best" + ".pt",
+            # )
 
         # Confusion Matrix
         cm = ConfusionMatrixDisplay.from_predictions(ground_truth, predict_result)
@@ -154,24 +154,24 @@ def train():
     isExist = os.path.exists(path)
     if not isExist:
         os.makedirs(path)
-    with open("record/" + "ResNet152" + ".txt", "w") as f:
+    with open("record/" + "ResNet18" + ".txt", "w") as f:
         for i in accuracy:
             f.write(str(i) + "\n")
 
-    with open("record/" + "ResNet152_loss" + ".txt", "w") as f:
+    with open("record/" + "ResNet18_loss" + ".txt", "w") as f:
         for i in loss_record:
             f.write(str(i) + "\n")
 
     # print("train() not defined")
 
 
-def evaluate():
+def evaluate(model_name: str):
     """
     evaluate process
     you can use resnet18 resnet50 or resnet152 to evaluate and compare the result
     """
     # Hyperparameters
-    batch_size = 8
+    batch_size = 16
     num_classes: int = 2
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -180,9 +180,18 @@ def evaluate():
         dataset=valid_dataset, batch_size=batch_size, shuffle=True
     )
 
-    model = ResNet.ResNet152(num_classes=num_classes).to(device)  # type: ignore
+    if model_name == "ResNet18":
+        model = ResNet.ResNet18(num_classes=num_classes).to(device)  # type: ignore
+    elif model_name == "ResNet50":
+        model = ResNet.ResNet50(num_classes=num_classes).to(device)  # type: ignore
+    elif model_name == "ResNet152":
+        model = ResNet.ResNet152(num_classes=num_classes).to(device)  # type: ignore
+    else:
+        print("model name error")
+        return
 
-    model.load_state_dict(torch.load("weight/Resnet152_best.pt"))
+    weight_path = "weight/" + model_name + "_best.pt"
+    model.load_state_dict(torch.load(weight_path))
 
     model.eval()
     ground_truth = []
@@ -204,11 +213,11 @@ def evaluate():
 
         acc = 100 * correct / total
 
-    print("Accuracy of the {} on the valid images: {} %".format("ResNet152", acc))
+    print("Accuracy of the {} on the valid images: {} %".format(model_name, acc))
 
     # Confusion Matrix
     cm = ConfusionMatrixDisplay.from_predictions(ground_truth, predict_result)
-    plt.show()
+    # plt.show()
 
 
 def save_result(csv_path, predict_result):
@@ -216,17 +225,20 @@ def save_result(csv_path, predict_result):
     new_df = pd.DataFrame()
     new_df["ID"] = df["Path"]
     new_df["label"] = predict_result
-    new_df.to_csv("./312554012_resnet152.csv", index=False)
+    new_df.to_csv("./312554012_resnet18.csv", index=False)
 
 
 if __name__ == "__main__":
-    print("Good Luck :)")
+    # print("Good Luck :)")
 
     # train()
 
-    # evaluate()
+    evaluate("ResNet18")
+    evaluate("ResNet50")
+    evaluate("ResNet152")
     # test()
 
     # plotObject = PlotResult("ResNet50", 25)
+    # plotObject.plot_compare("ResNet18", "ResNet50", "ResNet152")
     # plotObject.plot()
     # plotObject.plot_loss()
