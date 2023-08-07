@@ -43,19 +43,39 @@ def kl_criterion(mu, logvar, batch_size):
 class kl_annealing:
     def __init__(self, args, current_epoch=0):
         # TODO
-        raise NotImplementedError
+        super().__init__()
+        self.use_cycle = args.kl_anneal_cyclical
+        self.n_iter = args.niter
+        self.n_cycle = args.kl_anneal_cycle
+        self.ratio = args.kl_anneal_ratio
+        self.period = self.n_iter / self.n_cycle
+        self.step = self.ratio / self.period
+        self.current_epoch = current_epoch
+        self.v = 0
+        self.beta = args.beta
 
     def update(self):
         # TODO
-        raise NotImplementedError
+        if self.use_cycle:
+            self.v = self.frange_cycle_linear(
+                self.n_iter, ratio=self.ratio, n_cycle=self.n_cycle
+            )[self.current_epoch]
+        else:
+            self.v = min(self.v + self.step, self.ratio)
+        self.beta = self.v
+        return self.beta
 
     def get_beta(self):
-        # TODO
-        raise NotImplementedError
+        return self.beta
 
     def frange_cycle_linear(self, n_iter, start=0.0, stop=1.0, n_cycle=1, ratio=1):
-        # TODO
-        raise NotImplementedError
+        L = np.ones(n_iter) * stop
+        n = int(n_iter * ratio)
+        n_in_cycle = int(n_iter / n_cycle)
+        for i in range(n):
+            v = start + i / n * (stop - start)
+            L[i * n_in_cycle : (i + 1) * n_in_cycle] = np.linspace(v, stop, n_in_cycle)
+        return L
 
 
 class VAE_Model(nn.Module):
@@ -101,7 +121,7 @@ class VAE_Model(nn.Module):
     def training_stage(self):
         for i in range(self.args.num_epoch):
             train_loader = self.train_dataloader()
-            adapt_TeacherForcing = True if random.random() < self.tfr else False
+            adapt_TeacherForcing = True if random.random() < self.tfr else False  # type: ignore
 
             for img, label in (pbar := tqdm(train_loader, ncols=120)):
                 img = img.to(self.args.device)
@@ -149,16 +169,63 @@ class VAE_Model(nn.Module):
             label = label.to(self.args.device)
             loss = self.val_one_step(img, label)
             self.tqdm_bar(
-                "val", pbar, loss.detach().cpu(), lr=self.scheduler.get_last_lr()[0]
+                "val", pbar, loss.detach().cpu(), lr=self.scheduler.get_last_lr()[0]  # type: ignore
             )
 
     def training_one_step(self, img, label, adapt_TeacherForcing):
         # TODO
-        raise NotImplementedError
+        self.optim.zero_grad()
+        img_feature = self.frame_transformation(img)
+        label_feature = self.label_transformation(label)
+        posterior = self.Gaussian_Predictor(
+            torch.cat((img_feature, label_feature), dim=1)
+        )
+        z = posterior.rsample()
+        decoder_input = torch.cat((img_feature, label_feature, z), dim=1)
+        decoder_output = self.Decoder_Fusion(decoder_input)
+        img_recon = self.Generator(decoder_output)
+        loss = self.mse_criterion(img_recon, img)
+
+        if adapt_TeacherForcing:
+            loss.backward()
+            self.optim.step()
+            return loss
+
+        # Teacher forcing
+        img_recon_list = []
+        for i in range(self.train_vi_len):
+            if i == 0:
+                img_recon_list.append(img_recon)
+            else:
+                img_recon_list.append(self.Generator(decoder_output))
+            img_feature = self.frame_transformation(img_recon_list[-1])
+            label_feature = self.label_transformation(label)
+            posterior = self.Gaussian_Predictor(
+                torch.cat((img_feature, label_feature), dim=1)
+            )
+            z = posterior.rsample()
+            decoder_input = torch.cat((img_feature, label_feature, z), dim=1)
+            decoder_output = self.Decoder_Fusion(decoder_input)
+            img_recon = self.Generator(decoder_output)
+            loss += self.mse_criterion(img_recon, img)
+
+        loss.backward()
+        self.optim.step()
+        return loss
 
     def val_one_step(self, img, label):
         # TODO
-        raise NotImplementedError
+        img_feature = self.frame_transformation(img)
+        label_feature = self.label_transformation(label)
+        posterior = self.Gaussian_Predictor(
+            torch.cat((img_feature, label_feature), dim=1)
+        )
+        z = posterior.rsample()
+        decoder_input = torch.cat((img_feature, label_feature, z), dim=1)
+        decoder_output = self.Decoder_Fusion(decoder_input)
+        img_recon = self.Generator(decoder_output)
+        loss = self.mse_criterion(img_recon, img)
+        return loss
 
     def make_gif(self, images_list, img_name):
         new_list = []
@@ -226,7 +293,7 @@ class VAE_Model(nn.Module):
 
     def teacher_forcing_ratio_update(self):
         # TODO
-        raise NotImplementedError
+        self.tfr = max(self.tfr - self.args.tfr_decay, self.args.tfr_min)
 
     def tqdm_bar(self, mode, pbar, loss, lr):
         pbar.set_description(
