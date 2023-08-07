@@ -40,7 +40,6 @@ class Block(nn.Module):
         identity = x.clone()
         x = self.relu(self.bn1(self.conv1(x)))
         x = self.bn2(self.conv2(x))
-        # x = self.bn3(self.conv3(x))
         if self.i_downsample is not None:
             identity = self.i_downsample(identity)
         x += identity
