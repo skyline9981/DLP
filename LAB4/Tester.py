@@ -15,7 +15,7 @@ from modules import (
 )
 from torchvision.utils import save_image
 from torch import stack
-
+import random
 import imageio
 from math import log10
 from Trainer import VAE_Model
@@ -71,11 +71,11 @@ def calculate_PSNR(save_root, gen_image, idx):
         PSNR = Generate_PSNR(ground_truth[i], gen_image[i])
         PSNR_LIST.append(PSNR.item())
 
-    return sum(PSNR_LIST) / (len(PSNR_LIST) - 1)
+    return (sum(PSNR_LIST) / (len(PSNR_LIST) - 1))
 
 
 def get_key(fp):
-    filename = fp.split("/")[-1]
+    filename = fp.split("\\")[-1]
     filename = filename.split(".")[0].replace("frame", "")
     return int(filename)
 
@@ -95,10 +95,12 @@ class Dataset_Dance(torchData):
         data_num = len(glob("./Demo_Test/*"))
         for i in range(data_num):
             self.img_folder.append(
-                sorted(glob(os.path.join(root, f"test/test_img/{i}/*")), key=get_key)
+                sorted(glob(os.path.join(root, f"test\\test_img\\{i}\\*")), key=get_key)
             )
             self.label_folder.append(
-                sorted(glob(os.path.join(root, f"test/test_label/{i}/*")), key=get_key)
+                sorted(
+                    glob(os.path.join(root, f"test\\test_label\\{i}\\*")), key=get_key
+                )
             )
 
         self.transform = transform
@@ -247,6 +249,12 @@ class Test_model(VAE_Model):
 
 def main(args):
     os.makedirs(args.save_root, exist_ok=True)
+    # seed = random.randint(1, 100)
+    seed = 84  # 64:23.928(cycle) 84:25.1(mono)
+    print("Random Seed: ", seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     model = Test_model(args).to(args.device)
     model.load_checkpoint()
     model.eval()
