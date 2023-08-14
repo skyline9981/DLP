@@ -9,4 +9,7 @@ new_dataset/
 *.csv
 LAB4_Dataset/
 Demo_Test/
+ckpt/
+logs/
+*.pptx
 ```
