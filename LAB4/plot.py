@@ -125,8 +125,24 @@ def plot_loss(log_dir):
     plt.plot(n_iter, KLDloss, "-", linewidth=2, label="kld loss")
     plt.xlabel("epoch", fontsize=12)
     plt.ylabel("loss", fontsize=12)
-    plt.ylim(0, 1)
+    plt.ylim(0, 0.2)
     plt.legend(loc="upper right", fontsize=12)
+    plt.show()
+
+
+def plot_frame_psnr(log_dir):
+    frame_psnr = []
+
+    with open("./{}/frame_PSNR_record.txt".format(log_dir), "r") as f:
+        for line in f.readlines():
+            s = line.strip("\n")
+            frame_psnr.append(float(s))
+
+    plt.title("Validation frame_psnr curve", fontsize=18)
+    plt.plot(frame_psnr, "o-", linewidth=2, markersize=3, label="psnr")
+    plt.xlabel("frame", fontsize=12)
+    plt.ylabel("psnr", fontsize=12)
+    plt.grid(axis="y")
     plt.show()
 
 
@@ -136,6 +152,7 @@ if __name__ == "__main__":
         "--log_dir", default="./logs/fp", help="base directory to save logs"
     )
     args = parser.parse_args()
+    # plot_frame_psnr(args.log_dir)
     plot_psnr(args.log_dir)
     plot_score(args.log_dir)
     plot_loss(args.log_dir)

@@ -209,21 +209,6 @@ class VAE_Model(nn.Module):
         return psnr
 
     def training_one_step(self, img, label, adapt_TeacherForcing):
-        """
-        Generate posterior by posterior predictor
-        Take the following info as input to Decoder Fusion
-        Pose image
-        Last frame
-        Sample Z from posterior predictor
-        Generate the final output by Generator
-        Loss = MES-term + KL-term
-
-        Teacher forcing
-        Take ground truth frame as input rather than last generated frame
-        Teacher forcing ratio is set to 0 ~ 1 and
-        When to use teacher forcing depends on your design
-        """
-
         img = img.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
         label = label.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
 
@@ -292,6 +277,10 @@ class VAE_Model(nn.Module):
             # gen_image[i] = gen_image[i].squeeze(dim=0)
             PSNR = Generate_PSNR(img[i], gen_image[i])
             PSNR_LIST.append(PSNR.item())
+
+        with open("./{}/frame_PSNR_record.txt".format(args.log_dir), "a") as f:
+            for i in range(len(PSNR_LIST)):
+                f.write(f"{PSNR_LIST[i]:.5f}\n")
 
         psnr = sum(PSNR_LIST) / (len(PSNR_LIST) - 1)
 
@@ -410,7 +399,7 @@ class VAE_Model(nn.Module):
 def main(args):
     os.makedirs(args.save_root, exist_ok=True)
     os.makedirs(args.log_dir, exist_ok=True)
-    seed = 1
+    seed = 84
     print("Random Seed: ", seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -517,7 +506,9 @@ if __name__ == "__main__":
     )
 
     # Kl annealing stratedy arguments
-    parser.add_argument("--kl_anneal_type", type=str, default="Monotonic", help="Cyclical or Monotonic")
+    parser.add_argument(
+        "--kl_anneal_type", type=str, default="Monotonic", help="Cyclical or Monotonic"
+    )
     parser.add_argument("--kl_anneal_cycle", type=int, default=10, help="")
     parser.add_argument("--kl_anneal_ratio", type=float, default=1, help="")
     parser.add_argument(
