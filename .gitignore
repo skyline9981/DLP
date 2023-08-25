@@ -13,4 +13,7 @@ ckpt/
 logs/
 *.pptx
 LAB4/LAB4
+iclevr/
+checkpoint/
+demo/
 ```
