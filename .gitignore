@@ -16,4 +16,6 @@ LAB4/LAB4
 iclevr/
 checkpoint/
 demo/
+*.pt
+*.pth
 ```
